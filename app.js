@@ -6,16 +6,11 @@ dotenv.config();
 
 const BigCommerce = require('node-bigcommerce');
 const bigCommerce = new BigCommerce({
-  clientId: process.env.CLIENTID,
-  accessToken: process.env.ACCESSTOKEN,
-  storeHash: process.env.STOREHASH,
+  clientId: '86bfttjvss10z12wpri60pepjxeqkd4',
+  accessToken: '3yfxxhuj8khf4dcjcu2pemc12z7i8fo',
+  storeHash: '1olu80ndn1',
   responseType: 'json'
 });
-
-const accountSid = process.env.ACCOUNTSID;
-const authToken = process.env.AUTHTOKEN;
-const client = require('twilio')(accountSid, authToken);
-
 const app = express();
 
 app.use(bodyParser.json())
@@ -26,10 +21,9 @@ app.use(bodyParser.json())
       let scopes = webhooks.map(a => a.scope);
       const hookBody = {
         "scope": "store/customer/created",
-        "destination": "https://7a821ff0.ngrok.io/webhooks",
+        "destination": "https://dc54-188-230-124-168.ngrok.io/webhooks",
         "is_active": true
       }
-
       console.log(scopes);
 
       if (scopes.indexOf("store/customer/created") > -1 || scopes.indexOf("store/customer/*") > -1) {
@@ -47,27 +41,34 @@ app.use(bodyParser.json())
         res.send('OK');
         let webhook = req.body;
         let customerId = webhook.data.id;
-        //console.log(webhook);
         console.log(customerId);
 
         bigCommerce.get(`/customers/${customerId}`)
         .then(data => {
-          let firstName = data.first_name;
-          let lastName = data.last_name;
-          sendText(firstName, lastName);
+            data.form_fields.forEach((el)=>{
+                if(el.name === 'Secret code'){
+                    if(el.value === 'B2BUSER') {
+                        dataCustomer = { "customer_group_id": 2, "store_credit": "100" };
+                        bigCommerce.put(`/customers/${customerId}`, dataCustomer)
+                            .then(data => {
+                            // Catch any errors, or handle the data returned
+                                console.log('data customer', data);
+                            });
+                    }
+                    if(el.value === 'REGULAR') {
+                        dataCustomer = { "customer_group_id": 1 };
+                        bigCommerce.put(`/customers/${customerId}`, dataCustomer)
+                            .then(data => {
+                            // Catch any errors, or handle the data returned
+                                console.log('data customer', data);
+                            });
+                    }
+                }
+            })
           })
         });
-    
-    function sendText(firstName, lastName){
-        client.messages
-        .create({
-            body: `${firstName} ${lastName} just registered an account on your store!`,
-            from: '+15127777777',
-            to: '+15125555555'
-        })
-        .then(message => console.log(message.sid));
-    }
 
-http.createServer(app).listen(1337, () => {
-  console.log('Express server listening on port 1337');
+
+http.createServer(app).listen(3000, () => {
+  console.log('Express server listening on port 3000');
 });
